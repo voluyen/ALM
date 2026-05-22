@@ -1,21 +1,20 @@
 from dataclasses import dataclass
-from transformers import HfArgumentParser, AutoModelForCausalLM, AutoTokenizer
+from transformers import HfArgumentParser, AutoModelForCausalLM, AutoTokenizer, FlaxAutoModelForCausalLM
 import json
 import jax
-import transformers
 import shutil
 
 from tokenkit.models import sharding
+from tokenkit.hf import get_config
 
-TMP_PATH = "/mnt/disks/persist/tmp/model"
 
 @dataclass
 class Args:
     model_name_or_path: str = "Qwen/Qwen2-0.5B"
     hub_user: str = "benjamin"
-    model_class: str = "Llama"
-    extra_args: str | None = None # for Qwen2: "{\"attention_bias\": true, \"max_length\": 8192}", for Llama3: "{\"max_length\": 8192}"
+    extra_args: str | None = None  # e.g. '{"attention_bias": true, "max_length": 8192}'
     use_cpu: bool = False
+    tmp_path: str = "/tmp/push_flax_model"
 
 
 if __name__ == "__main__":
@@ -28,26 +27,18 @@ if __name__ == "__main__":
     else:
         mesh = sharding.get_mesh()
 
-    shutil.rmtree(TMP_PATH, ignore_errors=True)
+    shutil.rmtree(args.tmp_path, ignore_errors=True)
     AutoModelForCausalLM.from_pretrained(args.model_name_or_path).save_pretrained(
-        TMP_PATH, max_shard_size="100GB"
+        args.tmp_path, max_shard_size="100GB"
     )
     tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
-    config_class = getattr(transformers, args.model_class + "Config")
-    if hasattr(transformers, "Flax" + args.model_class + "ForCausalLM"):
-        model_class = getattr(transformers, "Flax" + args.model_class + "ForCausalLM")
-    elif hasattr(transformers, "Flax" + args.model_class +  "LMHeadModel"):
-        model_class = getattr(transformers, "Flax" + args.model_class +  "LMHeadModel")
-    else:
-        raise ValueError(f"Model class '{args.model_class}' not found")
 
-    config = config_class.from_pretrained(TMP_PATH, args.model_name_or_path)
+    config = get_config(args.tmp_path)
     for key, value in json.loads(args.extra_args or "{}").items():
         setattr(config, key, value)
-
     config.mesh = mesh
 
-    flax_model = model_class.from_pretrained(TMP_PATH, config=config)
+    flax_model = FlaxAutoModelForCausalLM.from_pretrained(args.tmp_path, config=config)
     model_name = args.hub_user + "/" + args.model_name_or_path.split("/")[-1] + "-flax"
 
     del config.mesh
