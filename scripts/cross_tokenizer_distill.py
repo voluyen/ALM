@@ -523,8 +523,6 @@ def main(args: CrossTokenizerDistillArgs):
         )
         student_config._attn_implementation = "eager"
 
-    teacher_config.mesh = student_config.mesh = mesh
-
     dtype = getattr(jnp, args.dtype)
 
     # prepare dataset
@@ -596,6 +594,11 @@ def main(args: CrossTokenizerDistillArgs):
     if args.gradient_checkpointing:
         # only supported for some models
         new_model.enable_gradient_checkpointing()
+
+    # Attach the mesh only after model creation: from_config triggers a deepcopy
+    # of the config (via GenerationConfig.from_model_config) which cannot pickle
+    # the JAX Device objects inside the mesh.
+    teacher_config.mesh = student_config.mesh = mesh
 
     model_params = param.load_params(**student_model_kwargs)
     # we manage embeddings separately from the non-embedding parameters, and add them as needed.

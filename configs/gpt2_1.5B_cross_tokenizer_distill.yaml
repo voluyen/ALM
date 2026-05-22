@@ -24,11 +24,11 @@ tokenizer_pair_bias_threshold: 0.1
 
 student:
   pretrained_model_name_or_path: "openai-community/gpt2-xl"
-  tokenizer_name: "openai-community/gpt2-xl:source=GPT2"
+  tokenizer_name: "openai-community/gpt2:source=GPT2"
 
 teacher:
   pretrained_model_name_or_path: "VoCuc/Qwen2.5-7B-Instruct-Dolly-SFT"
-  tokenizer_name: "VoCuc/Qwen2.5-7B-Instruct-Dolly-SFT:source=Qwen2"
+  tokenizer_name: "VoCuc/Qwen1.5-1.8B-Instruct-Dolly-SFT:source=Qwen2"
 
 data:
   path: data/dolly_train.jsonl
