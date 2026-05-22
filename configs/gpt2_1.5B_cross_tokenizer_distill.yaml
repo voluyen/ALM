@@ -27,8 +27,8 @@ student:
   tokenizer_name: "openai-community/gpt2:source=GPT2"
 
 teacher:
-  pretrained_model_name_or_path: "VoCuc/Qwen2.5-7B-Instruct-Dolly-SFT"
-  tokenizer_name: "VoCuc/Qwen1.5-1.8B-Instruct-Dolly-SFT:source=Qwen2"
+  pretrained_model_name_or_path: "./models/qwen1.5-1.8b-sft-dolly-flax"
+  tokenizer_name: "VoCuc/Qwen1.5_1.8B_SFT_Dolly:source=Qwen2"
 
 data:
   path: data/dolly_train.jsonl
