@@ -22,4 +22,5 @@ langdetect==1.0.9
 immutabledict==4.2.1
 maturin==1.8.3
 transformers==4.46.0
+spacy>=3.7.0
 git+https://github.com/google/CommonLoopUtils@307b0bc65ae2e2d801b6c19df2431c060a0aa4ec

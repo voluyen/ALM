@@ -30,6 +30,9 @@ from jax.sharding import PartitionSpec as P
 from torchdata.stateful_dataloader import StatefulDataLoader
 from transformers import FlaxAutoModelForCausalLM
 
+import spacy
+from spacy.matcher import Matcher
+
 import wandb
 from tokenkit import data, eval, gcs_utils, parse_args, utils
 from tokenkit.hf import get_config
@@ -180,6 +183,16 @@ class CrossTokenizerDistillArgs:
     export_to_gcs_bucket: str | None = None
     # Dataset to use for perplexity evaluation. LM harness evaluation is usually more informative.
     ppl_eval_data: dict[str, Any] | None = None
+    # whether to enable Multi-Teacher Alignment (MTA) span distillation loss.
+    mta_mode: bool = False
+    # teacher layer indices used for MTA span alignment.
+    teacher_layer_mapping: list[int] = field(default_factory=lambda: [0, 0, 0, 0])
+    # student layer indices used for MTA span alignment.
+    student_layer_mapping: list[int] = field(default_factory=lambda: [0, 0, 0, 0])
+    # split boundaries for word/span projector groups in MTA.
+    split_layer_mapping: list[int] = field(default_factory=lambda: [0, 1, 4, 4])
+    # weight for the MTA span loss.
+    w_span_loss: float = 2.0
 
 
 class TrainState(train_state.TrainState):
@@ -548,6 +561,24 @@ def main(args: CrossTokenizerDistillArgs):
     else:
         mined_mapping = mined_distances = None
 
+    nlp = matcher = mta_projector_list = None
+    if args.mta_mode:
+        nlp = spacy.load("en_core_web_sm")
+        matcher = Matcher(nlp.vocab)
+        matcher.add("VERB_PHRASE", [[
+            {"POS": "AUX", "OP": "*"},
+            {"POS": "ADV", "OP": "*"},
+            {"POS": "VERB", "OP": "+"},
+            {"POS": "ADV", "OP": "*"},
+        ]])
+
+        student_hidden_size = student_config.hidden_size
+        teacher_hidden_size = teacher_config.hidden_size
+        mta_projector_list = torch.nn.ModuleList([
+            torch.nn.Linear(student_hidden_size, teacher_hidden_size)
+            for _ in range(len(args.teacher_layer_mapping))
+        ])
+
     # _do_init=False -> do not load parameters, parameters will be loaded separately
     # since we want to manually manage their device placement
     teacher_model = FlaxAutoModelForCausalLM.from_config(
@@ -834,7 +865,7 @@ def main(args: CrossTokenizerDistillArgs):
             )
 
             need_teacher = len([loss for loss in args.losses if loss != "sft"]) > 0
-            need_hidden_states = len([loss for loss in args.losses if loss in {"alm_latents", "baseline_dskd"}]) > 0
+            need_hidden_states = len([loss for loss in args.losses if loss in {"alm_latents", "baseline_dskd", "mta"}]) > 0
 
             if need_teacher:
                 teacher_out = teacher_model_fn(
@@ -925,6 +956,9 @@ def main(args: CrossTokenizerDistillArgs):
                 space_mask_new=state.space_mask_new,
                 logit_mask_teacher=state.logit_mask_teacher,
                 logit_mask_new=state.logit_mask_new,
+                mta_projector_list=mta_projector_list,
+                nlp=nlp,
+                matcher=matcher,
             )
 
             loss_values = jnp.zeros(len(args.losses), dtype=jnp.float32)
@@ -951,6 +985,8 @@ def main(args: CrossTokenizerDistillArgs):
                     current_loss = losses.compute_baseline_mined_loss(
                         mined_mapping, args, loss_args
                     )
+                elif loss == "mta":
+                    current_loss = losses.compute_span_loss(args, loss_args)
                 else:
                     raise ValueError(f"Invalid loss: {loss}")
 
@@ -1279,6 +1315,7 @@ def main(args: CrossTokenizerDistillArgs):
         eval_metrics = []
 
         for batch in tqdm(dataloader, desc="Running PPL evaluation..."):
+            batch.pop("texts", None)
             batch = sharding.sync_across_devices(batch)
             batch = sharding.to_global_array(batch, batch_shardings)
             step_metrics = jeval_step(state, batch)
@@ -1332,6 +1369,7 @@ def main(args: CrossTokenizerDistillArgs):
             batch = next(diter)
 
         batch = sharding.sync_across_devices(batch)
+        batch.pop("texts", None)
         global_batch = sharding.to_global_array(batch, batch_shardings)
 
         if args.dry_run:

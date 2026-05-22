@@ -99,6 +99,25 @@ class TokenizerAlignerCollator:
         self.prefix_map_original = self._compute_prefix_map(tokenizer_original)
         self.prefix_map_new = self._compute_prefix_map(tokenizer_new)
 
+    def _compute_offsets_mapping(self, texts, tokenizer, max_length):
+        if self.use_chat_template:
+            from tokenkit import utils as tk_utils
+            processed = [tk_utils.preprocess_prompt(t, self.chat_template_mode) for t in texts]
+        else:
+            processed = texts
+        try:
+            enc = tokenizer(
+                processed,
+                max_length=max_length,
+                padding="max_length",
+                truncation=True,
+                return_offsets_mapping=True,
+                return_tensors="np",
+            )
+            return enc["offset_mapping"].astype(np.int32)
+        except Exception:
+            return np.zeros((len(texts), max_length, 2), dtype=np.int32)
+
     def _compute_loss_mask(self, input_ids, attention_mask, loss_mask_tokens):
         loss_mask = attention_mask.astype(bool)
         if loss_mask_tokens is not None:
@@ -254,7 +273,15 @@ class TokenizerAlignerCollator:
             input_ids_new, attention_mask_new, self.loss_mask_tokens_new
         )
 
+        offsets_mapping_new = self._compute_offsets_mapping(
+            texts, self.tokenizer_new, self.max_student_length
+        )
+        offsets_mapping_original = self._compute_offsets_mapping(
+            texts, self.tokenizer_original, self.max_teacher_length
+        )
+
         batch = {
+            "texts": texts,
             "input_ids_new": input_ids_new,
             "attention_mask_new": attention_mask_new,
             "occuring_tokens_mask_new": occuring_tokens_mask_new,
@@ -269,6 +296,8 @@ class TokenizerAlignerCollator:
             "alignment_matrix_b_unbiased": alignment_matrix_b_unbiased,
             "loss_mask_original": loss_mask_original,
             "loss_mask_new": loss_mask_new,
+            "offsets_mapping_new": offsets_mapping_new,
+            "offsets_mapping_original": offsets_mapping_original,
         }
 
         if self.expand_input_ids_dict is not None:
@@ -295,6 +324,8 @@ class TokenizerAlignerCollator:
             "alignment_matrix_b_unbiased": P("data", None),
             "loss_mask_original": P("data", None),
             "loss_mask_new": P("data", None),
+            "offsets_mapping_new": P("data", None, None),
+            "offsets_mapping_original": P("data", None, None),
         }
 
         if self.expand_input_ids_dict is not None:

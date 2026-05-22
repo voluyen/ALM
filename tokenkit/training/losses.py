@@ -12,6 +12,8 @@ from jax.sharding import PartitionSpec as P
 from tokenkit import baseline_utils, utils
 from tokenkit.models import param
 
+from .span_utils import get_spans_offsets, compute_overall_span_loss
+
 def get_last_index_per_column(matrix):
     matrix_last_only = (
         jnp.asarray(matrix).at[:, :-1].set(matrix[:, :-1] & ~matrix[:, 1:])
@@ -65,6 +67,10 @@ class LossArgs:
     space_mask_new: Any
     logit_mask_teacher: Any
     logit_mask_new: Any
+    mta_projector_list: Any = None
+    nlp: Any = None
+    matcher: Any = None
+
 
 
 def compute_alm_latents_loss(args, loss_args, epsilon=1e-8):
@@ -909,3 +915,30 @@ def compute_baseline_mined_loss(mined_mapping, args, loss_args):
     ) / (global_one_to_one_mask.sum() + global_onehot_mask.sum()).astype(jnp.float32)
 
     return mined_kl_loss
+
+def compute_span_loss(args, loss_args):
+    # loss_args.batch["span_labels"] is [B, L] with 1 for the start of a span and 0 elsewhere
+    # we want to predict these labels from the student hidden states using a linear head
+    s_tokenizer = loss_args.distiller.student_tokenizer
+    t_tokenizer = loss_args.tokenizer_teacher
+    input_texts = s_tokenizer.batch_decode(loss_args.batch['input_ids_new'], skip_special_tokens=True)
+
+    device = loss_args.batch['input_ids_new'].device
+    s_seq_len = loss_args.batch['input_ids_new'].shape[1]
+    t_seq_len = loss_args.batch["input_ids_original"].shape[1]
+    s_offsets_mapping = s_tokenizer(input_texts, return_offsets_mapping=True,
+                                            max_length=s_seq_len, padding='max_length', truncation=True,
+                                            add_special_tokens=False, return_tensors='pt')['offset_mapping'].to(device)
+    t_offsets_mapping = t_tokenizer(input_texts, return_offsets_mapping=True,
+                                            max_length=t_seq_len, padding='max_length', truncation=True,
+                                            add_special_tokens=False, return_tensors='pt')['offset_mapping'].to(device)
+    spans_offsets, words_offsets = get_spans_offsets(input_texts, loss_args.nlp, loss_args.matcher)
+
+    span_loss = compute_overall_span_loss(loss_args.mta_projector_list, loss_args.batch['attention_mask_new'], 
+                                            loss_args.batch['attention_mask_original'],
+                                            loss_args.student_logits, loss_args.teacher_logits, 
+                                            loss_args.student_out.hidden_states,
+                                            loss_args.teacher_out.hidden_states,
+                                            s_offsets_mapping, t_offsets_mapping, 
+                                            spans_offsets, words_offsets, args)
+    return span_loss

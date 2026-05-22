@@ -1,0 +1,72 @@
+steps: 5_000
+warmup_steps: 1_000
+name: "unnamed"
+output: "outputs/gpt2_xl_distill"
+num_workers: 16
+log_interval: 50
+sync_interval: 100
+eval_interval: 5000
+save_interval: 5000
+losses: [alm_unbiased, mta]
+target_tokenizer_name: openai-community/gpt2-xl:source=GPT2
+tokens_to_add: []
+
+train_model_mode: "lora"
+model_lora_rank: 64
+model_lora_alpha: 64
+train_embeddings: true
+
+binarization_temp: 100.0
+alm_diff_fn: "binary_ce"
+alm_mode: "space_merge+append_space"
+tokenizer_pair_data_path: "artifacts/tokenizer_data/math_llama3_to_gemma2"
+tokenizer_pair_bias_threshold: 0.1
+
+student:
+  pretrained_model_name_or_path: "openai-community/gpt2-xl"
+  tokenizer_name: "openai-community/gpt2-xl:source=GPT2"
+
+teacher:
+  pretrained_model_name_or_path: "VoCuc/Qwen2.5-7B-Instruct-Dolly-SFT"
+  tokenizer_name: "VoCuc/Qwen2.5-7B-Instruct-Dolly-SFT:source=Qwen2"
+
+data:
+  path: data/dolly_train.jsonl
+  batch_size: 16
+  num_workers: 16
+  kind: "jsonl"
+  lang_code: en
+
+hypernet:
+  architecture: transformer
+  num_layers: 1
+  residual: true
+  residual_alpha: 1
+  use_attention: false
+
+optimizer:
+  type: adamw
+  weight_decay: 0.01
+  b1: 0.9
+  b2: 0.95
+  eps: 1.e-8
+  grad_acc_steps: null
+  learning_rate: 1.e-5
+  max_grad_norm: 1.0
+  param_groups:
+    - pattern: .*(projector_query|projector_s2t|projector_t2s|projector_latents|loss_weights).*
+      lr_scale: 2
+
+mta_mode: true
+teacher_layer_mapping: [6, 12, 18, 24]
+student_layer_mapping: [2, 4, 6, 8]
+split_layer_mapping: [0, 1, 4, 4]
+w_span_loss: 2.0
+
+eval:
+  tasks: [arc_easy,arc_challenge,piqa,hellaswag,boolq,arithmetic,mmlu]
+  lengths: [128, 256, 512, 1024, 2048]
+  tokens_per_batch: 8192
+  add_bos: true
+  chat_template_mode: surround_instruct
+  confirm_run_unsafe_code: true
