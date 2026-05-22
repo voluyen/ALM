@@ -4,12 +4,12 @@ set -e
 ACCELERATOR=${1:-gpu}  # usage: bash install.sh [gpu|tpu]  (default: gpu)
 CUDA_VERSION=${2:-cuda12}  # e.g. cuda11, cuda12 (GPU only)
 
-echo "==> Installing PyTorch + JAX for $ACCELERATOR..."
+echo "==> Installing PyTorch + JAX + Flax + Optax for $ACCELERATOR..."
 if [ "$ACCELERATOR" = "tpu" ]; then
-    pip install torch "jax[tpu]==0.5.0" \
+    pip install torch "jax[tpu]==0.5.0" "flax==0.10.2" "optax==0.2.4" \
         -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
 else
-    pip install torch "jax[$CUDA_VERSION]==0.5.0"
+    pip install torch "jax[$CUDA_VERSION]==0.5.0" "flax==0.10.2" "optax==0.2.4"
 fi
 
 echo "==> Installing lm-evaluation-harness..."
