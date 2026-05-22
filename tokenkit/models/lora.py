@@ -24,6 +24,13 @@ LORA_PATTERNS = {
         ".*mlp.up_proj.kernel",
         ".*mlp.gate_proj.kernel",
     ],
+    "gpt2": [
+        # GPT2 fuses Q/K/V into c_attn; c_proj is the attention output proj.
+        ".*attn.c_attn.kernel",
+        ".*attn.c_proj.kernel",
+        ".*mlp.c_fc.kernel",
+        ".*mlp.c_proj.kernel",
+    ],
 }
 LORA_PATTERNS["tpu_llama"] = LORA_PATTERNS["llama"]
 LORA_PATTERNS["tpu_gemma2"] = LORA_PATTERNS["gemma2"]
