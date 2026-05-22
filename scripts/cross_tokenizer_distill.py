@@ -412,11 +412,18 @@ def get_state(
         gradnorm_state = None
         gradnorm_tx = None
 
+    # Build the optimizer once and reuse the same object: optax.multi_transform
+    # produces fresh local closures on every call, and `tx` is stored as static
+    # metadata on TrainState. Creating it inside _jit_init_state would yield a
+    # different `tx` under eval_shape vs. under jit tracing, making out_shardings
+    # and the traced output disagree on pytree metadata.
+    tx = opt.get_optimizer(train_mask, learning_rate_fn, **optimizer_kwargs)
+
     def _jit_init_state(params):
         return TrainState.create(
             apply_fn=_unimplemented_apply_fn,
             params=params,
-            tx=opt.get_optimizer(train_mask, learning_rate_fn, **optimizer_kwargs),
+            tx=tx,
             logit_mask_teacher=logit_mask_teacher,
             logit_mask_new=logit_mask_new,
             train_mask=train_mask,

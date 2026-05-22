@@ -1,17 +1,17 @@
 steps: 5_000
 warmup_steps: 1_000
 name: "unnamed"
-output: "outputs/gpt2_xl_distill"
+output: "outputs/gpt2_distill"
 num_workers: 16
 log_interval: 50
 sync_interval: 100
 eval_interval: 5000
 save_interval: 5000
 losses: [alm_unbiased, mta]
-target_tokenizer_name: openai-community/gpt2-xl:source=GPT2
+target_tokenizer_name: openai-community/gpt2:source=GPT2
 tokens_to_add: []
 
-train_model_mode: "lora"
+train_model_mode: "full"
 model_lora_rank: 64
 model_lora_alpha: 64
 train_embeddings: true
@@ -23,7 +23,7 @@ tokenizer_pair_data_path: "artifacts/tokenizer_data/math_llama3_to_gemma2"
 tokenizer_pair_bias_threshold: 0.1
 
 student:
-  pretrained_model_name_or_path: "openai-community/gpt2-xl"
+  pretrained_model_name_or_path: "openai-community/gpt2"
   tokenizer_name: "openai-community/gpt2:source=GPT2"
 
 teacher:
