@@ -8,6 +8,7 @@ Defines sharding patterns for various model architectures.
 - Only FSDP is supported for now.
 """
 
+import copy
 import logging
 
 import jax
@@ -21,6 +22,14 @@ import numpy as np
 from tokenkit import utils
 
 logger = logging.getLogger(__name__)
+
+# A jax Mesh holds Device objects, which cannot be pickled / deep-copied.
+# The mesh is attached to HF model configs (`config.mesh`), and transformers
+# deep-copies the config during model construction (GenerationConfig.from_model_config
+# -> config.to_dict() -> copy.deepcopy). A Mesh is an immutable, shared handle to a
+# fixed set of devices, so deep-copying it to itself is safe and avoids recursing
+# into the unpicklable Device objects.
+copy._deepcopy_dispatch[jax.sharding.Mesh] = lambda x, memo: x
 
 
 SHARD_PATTERNS = {
