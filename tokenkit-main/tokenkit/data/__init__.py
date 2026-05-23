@@ -22,12 +22,26 @@ class JSONLDataset(Dataset):
             split="train" if n_subsample is None else f"train[:{n_subsample}]",
         )
         self.raw_dset = self.raw_dset.shuffle(seed=seed)
-        self.dset = self.raw_dset.map(
-            lambda x, idx: {
+
+        # Pass-through optional MTA span fields if they exist in the raw dataset.
+        # Anything else in the source columns is dropped.
+        extra_cols = [
+            c for c in ("spans_char_offsets", "words_char_offsets")
+            if c in self.raw_dset.column_names
+        ]
+
+        def _batched(x, idx):
+            out = {
                 "text": [x["text"]],
                 "lang_code": [[lang_code] * len(x["text"])],
                 "index": [idx],
-            },
+            }
+            for c in extra_cols:
+                out[c] = [x[c]]
+            return out
+
+        self.dset = self.raw_dset.map(
+            _batched,
             batched=True,
             batch_size=batch_size,
             drop_last_batch=True,

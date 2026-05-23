@@ -38,7 +38,6 @@ teacher_layer_mapping: [6, 12, 18, 24]
 student_layer_mapping: [3, 6, 9, 12]
 # [lo, word_end, span_end, total] -> 1 word-level + 3 span-level projectors.
 split_layer_mapping: [0, 1, 4, 4]
-w_span_loss: 2.0
 entropy_weight: false
 wo_span_weight: false
 

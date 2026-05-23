@@ -1,11 +1,21 @@
 GPUS=(1)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
-NAME=gpt2_120m_distill
+NAME=gpt2_120m_distill_mta
 python3 pytorch_cross_tokenizer_distill.py \
     --config=gpt2_120M_cross_tokenizer_distill.yaml \
     --overrides \
-    losses=[sft,alm_unconstrained] \
+    losses=[sft,alm_unconstrained,mta] \
+    loss_weights=[1.0,1.0,2.0] \
+    mta_mode=true \
+    teacher_layer_mapping=[6,12,18,24] \
+    student_layer_mapping=[3,6,9,12] \
+    split_layer_mapping=[0,1,4,4] \
+    entropy_weight=false \
+    wo_span_weight=false \
+    data.path=data/dolly_train_with_spans.jsonl \
+    student_device=cuda:0 \
+    teacher_device=cuda:0 \
     alm_mode=merge_by_space_prob+append_space \
     tokenizer_pair_bias_threshold=0.1 \
     max_teacher_length=256 \
@@ -31,5 +41,5 @@ python3 pytorch_cross_tokenizer_distill.py \
     save_at_step_zero=false \
     skip_lm_eval=true \
     latents_do_project=true \
-    num_workers=24 \
+    num_workers=8 \
     name=$NAME

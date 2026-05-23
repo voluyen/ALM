@@ -197,8 +197,6 @@ class CrossTokenizerDistillArgs:
     # Slice points [start, word_end, span_end, total] dividing projectors into
     # word-level vs span-level groups.
     split_layer_mapping: list[int] = field(default_factory=lambda: [0, 1, 4, 4])
-    # Standalone weight (legacy from MTA paper); main scaling should go through `loss_weights`.
-    w_span_loss: float = 2.0
     # Use teacher entropy as aggregation weight (lower entropy ⇒ higher weight).
     entropy_weight: bool = False
     # If True, MSE is unweighted (mean over pairs) instead of teacher-weight weighted.
