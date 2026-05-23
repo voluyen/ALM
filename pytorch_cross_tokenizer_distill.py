@@ -183,6 +183,10 @@ class CrossTokenizerDistillArgs:
     # Dataset to use for perplexity evaluation. LM harness evaluation is usually more informative.
     ppl_eval_data: dict[str, Any] | None = None
 
+    # Device placement (single string per model, e.g. "cuda:0", "cuda:1", "cpu").
+    student_device: str = "cuda:0"
+    teacher_device: str = "cuda:1"
+
     # ── MTA (Multi-Teacher Alignment) span loss config ────────────────────────
     # Master switch: must be true if "mta" is in `losses`.
     mta_mode: bool = False
@@ -620,20 +624,20 @@ def main(args: CrossTokenizerDistillArgs):
         target_tokenizer.add_tokens(args.tokens_to_add)
        
 
+    logger.info("GPU layout: student=%s teacher=%s",
+                args.student_device, args.teacher_device)
+
     teacher_model = AutoModelForCausalLM.from_pretrained(
         args.teacher.pretrained_model_name_or_path,
         torch_dtype=torch.bfloat16,
-        device_map="cuda:1",
-        # max_length=args.max_teacher_length,
+        device_map=args.teacher_device,
     )
-    
 
     if args.train_model_mode == 'lora':
         new_model = AutoModelForCausalLM.from_pretrained(
             args.student.pretrained_model_name_or_path,
-            device_map="cuda:0",
+            device_map=args.student_device,
             torch_dtype=torch.bfloat16,
-            # max_length=args.max_student_length,
         )
         if target_tokenizer_name.split("=")[1] == 'GPT2':
             target_modules = ["c_attn", "c_proj"]
@@ -652,9 +656,7 @@ def main(args: CrossTokenizerDistillArgs):
     else:
         new_model = AutoModelForCausalLM.from_pretrained(
             args.student.pretrained_model_name_or_path,
-            device_map="cuda:0",
-            # torch_dtype=torch.bfloat16,
-            # max_length=args.max_student_length,
+            device_map=args.student_device,
         )
 
     device = new_model.device

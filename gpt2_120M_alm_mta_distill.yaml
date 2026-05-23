@@ -27,6 +27,10 @@ alm_mode: "space_merge+append_space"
 tokenizer_pair_data_path: "artifacts/tokenizer_data/math_llama3_to_gemma2"
 tokenizer_pair_bias_threshold: 0.1
 
+# Device placement (override với --overrides student_device=cuda:0 teacher_device=cuda:0 nếu 1 GPU)
+student_device: "cuda:0"
+teacher_device: "cuda:1"
+
 # ── MTA hyperparams ─────────────────────────────────────────────────────────
 mta_mode: true
 # Qwen1.5-1.8B has 24 hidden layers; GPT2-small has 12. Pair quartiles.

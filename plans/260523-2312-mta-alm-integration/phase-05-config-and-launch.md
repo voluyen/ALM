@@ -1,10 +1,11 @@
 ---
 phase: 5
-title: "Config and Launch"
-status: pending
+title: Config and Launch
+status: completed
 priority: P2
-effort: "1h"
-dependencies: [4]
+effort: 1h
+dependencies:
+  - 4
 ---
 
 # Phase 5: Config and Launch

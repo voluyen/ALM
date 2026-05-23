@@ -50,7 +50,7 @@ Tích hợp MTA (Multi-Teacher Alignment) span-level relational similarity loss 
 | 2 | [Span Utils Module](./phase-02-span-utils-module.md) | Completed |
 | 3 | [Update Collator](./phase-03-update-collator.md) | Completed |
 | 4 | [Update Train Script](./phase-04-update-train-script.md) | Completed |
-| 5 | [Config and Launch](./phase-05-config-and-launch.md) | Pending |
+| 5 | [Config and Launch](./phase-05-config-and-launch.md) | Completed |
 | 6 | [Smoke Test and Validation](./phase-06-smoke-test-and-validation.md) | Pending |
 
 ## Dependencies
