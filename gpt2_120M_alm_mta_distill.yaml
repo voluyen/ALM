@@ -24,7 +24,7 @@ train_embeddings: true
 binarization_temp: 100.0
 alm_diff_fn: "binary_ce"
 alm_mode: "space_merge+append_space"
-tokenizer_pair_data_path: "artifacts/tokenizer_data/math_llama3_to_gemma2"
+tokenizer_pair_data_path: "artifacts/tokenizer_data/qwen_to_gpt2"
 tokenizer_pair_bias_threshold: 0.1
 
 # Device placement (override với --overrides student_device=cuda:0 teacher_device=cuda:0 nếu 1 GPU)
