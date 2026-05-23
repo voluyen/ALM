@@ -1,0 +1,84 @@
+steps: 5_000
+warmup_steps: 1_000
+name: "gpt2_120M_alm_mta_v1"
+output: "outputs/gpt2_120M_alm_mta_v1"
+num_workers: 16
+log_interval: 50
+sync_interval: 100
+eval_interval: 5000
+save_interval: 5000
+
+# Combined cross-tokenizer distillation: alm_unbiased + MTA span-relational loss.
+losses: [alm_unbiased, mta]
+loss_weights: [1.0, 2.0]
+
+target_tokenizer_name: openai-community/gpt2:source=GPT2
+tokens_to_add: []
+
+train_model_mode: "lora"
+model_lora_rank: 64
+model_lora_alpha: 64
+train_embeddings: true
+
+# ── ALM hyperparams ─────────────────────────────────────────────────────────
+binarization_temp: 100.0
+alm_diff_fn: "binary_ce"
+alm_mode: "space_merge+append_space"
+tokenizer_pair_data_path: "artifacts/tokenizer_data/math_llama3_to_gemma2"
+tokenizer_pair_bias_threshold: 0.1
+
+# ── MTA hyperparams ─────────────────────────────────────────────────────────
+mta_mode: true
+# Qwen1.5-1.8B has 24 hidden layers; GPT2-small has 12. Pair quartiles.
+teacher_layer_mapping: [6, 12, 18, 24]
+student_layer_mapping: [3, 6, 9, 12]
+# [lo, word_end, span_end, total] -> 1 word-level + 3 span-level projectors.
+split_layer_mapping: [0, 1, 4, 4]
+w_span_loss: 2.0
+entropy_weight: false
+wo_span_weight: false
+
+student:
+  pretrained_model_name_or_path: "openai-community/gpt2"
+  tokenizer_name: "openai-community/gpt2:source=GPT2"
+
+teacher:
+  pretrained_model_name_or_path: "VoCuc/Qwen1.5_1.8B_SFT"
+  tokenizer_name: "VoCuc/Qwen1.5_1.8B_SFT:source=Qwen2"
+
+data:
+  # Output of `precompute_spans.py`; falls back to dolly_train.jsonl if spans are absent.
+  path: data/dolly_train_with_spans.jsonl
+  batch_size: 16
+  num_workers: 16
+  kind: "jsonl"
+  lang_code: en
+
+hypernet:
+  architecture: transformer
+  num_layers: 1
+  residual: true
+  residual_alpha: 1
+  use_attention: false
+
+optimizer:
+  type: adamw
+  weight_decay: 0.01
+  b1: 0.9
+  b2: 0.95
+  eps: 1.e-8
+  grad_acc_steps: null
+  learning_rate: 1.e-5
+  max_grad_norm: 1.0
+  param_groups:
+    # MTA projectors also get lr_scale=2 via the `mta_projector` regex match.
+    - pattern: .*(projector_query|projector_s2t|projector_t2s|projector_latents|loss_weights|mta_projector).*
+      lr_scale: 2
+
+eval:
+  tasks: [arc_easy,arc_challenge,piqa,hellaswag,boolq,arithmetic,mmlu]
+  lengths: [128, 256, 512, 1024, 2048]
+  tokens_per_batch: 8192
+  add_bos: true
+  chat_template_mode: surround_instruct
+  confirm_run_unsafe_code: true
