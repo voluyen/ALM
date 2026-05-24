@@ -21,10 +21,11 @@ $PYTHON -m pip install --upgrade pip setuptools wheel
 
 if [ "${SKIP_TORCH:-0}" = "0" ]; then
     echo "[3/5] Install PyTorch (CUDA=$CUDA_VERSION)"
+    # Use --extra-index-url so pip falls back to PyPI for transitive deps (e.g. setuptools).
     if [ "$CUDA_VERSION" = "cpu" ]; then
-        $PYTHON -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+        $PYTHON -m pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
     else
-        $PYTHON -m pip install torch --index-url "https://download.pytorch.org/whl/$CUDA_VERSION"
+        $PYTHON -m pip install torch --extra-index-url "https://download.pytorch.org/whl/$CUDA_VERSION"
     fi
 else
     echo "[3/5] Skipping torch install (SKIP_TORCH=1)"
