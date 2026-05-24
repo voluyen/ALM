@@ -964,6 +964,13 @@ def main(args: CrossTokenizerDistillArgs):
             # TODO: probably extract into eval function doing everything here
             pass
 
+    # Always save final checkpoint after the training loop ends — the in-loop
+    # save only fires on StopIteration (epoch boundary), which never triggers
+    # for the very last epoch because the range exits first.
+    final_dir = args.output + f"/{args.steps}"
+    logger.info("Saving final checkpoint to %s", final_dir)
+    new_model.save_pretrained(final_dir, state_dict=new_model.state_dict())
+
 
 if __name__ == "__main__":
     os.environ["HYDRA_FULL_ERROR"] = "1"

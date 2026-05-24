@@ -33,8 +33,8 @@ fi
 
 echo "[4/5] Install PyTorch path deps"
 $PYTHON -m pip install \
-    "transformers==4.46.0" \
-    "tokenizers==0.20.3" \
+    "transformers>=4.46.3,<4.50" \
+    "tokenizers>=0.20.3,<0.22" \
     "datasets==3.2.0" \
     "peft>=0.11.0" \
     "scipy==1.14.1" \
