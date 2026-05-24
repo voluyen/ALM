@@ -79,7 +79,7 @@ pip install -e tokenkit-main/  # still needs tokenkit for align/byteify
 **PyTorch distillation** (single GPU — always run from repo root):
 ```bash
 # Legacy GPT2 pairs
-bash scripts/distill/gpt2_120M_distill.sh
+bash scripts/distill/qwen1.5-1.8b_to_gpt2_distill.sh
 bash scripts/distill/gpt2_1.5B_distill.sh
 
 # New cross-tokenizer pairs (see docs/pytorch-distill-guide.md)
@@ -90,7 +90,7 @@ bash scripts/distill/mistral-7b_to_tinyllama_distill.sh
 
 # Direct invocation with config overrides:
 python3 pytorch_cross_tokenizer_distill.py \
-    --config=configs/gpt2_120M_cross_tokenizer_distill.yaml \
+    --config=configs/qwen1.5-1.8b_to_gpt2_distill.yaml \
     --overrides \
     losses=[sft,alm_unconstrained] \
     steps=7200 \

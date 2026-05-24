@@ -1,6 +1,9 @@
-NAME=gpt2_120m_distill_mta
+#!/bin/bash
+# Pair 0: VoCuc/Qwen1.5_1.8B_SFT -> openai-community/gpt2 (124M).
+# Full fine-tune, 20 epochs, batch 8 (carried over from legacy gpt2_120M_distill.sh).
+NAME=qwen1.5-1.8b_to_gpt2
 python3 pytorch_cross_tokenizer_distill.py \
-    --config=configs/gpt2_120M_cross_tokenizer_distill.yaml \
+    --config=configs/qwen1.5-1.8b_to_gpt2_distill.yaml \
     --overrides \
     losses=[sft,alm_unconstrained,mta] \
     loss_weights=[1.0,1.0,2.0] \

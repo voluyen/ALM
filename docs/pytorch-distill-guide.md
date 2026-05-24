@@ -16,7 +16,8 @@ Configs parsed by Hydra/OmegaConf. CLI override syntax:
 | 3 | Qwen2.5-7B → OPT-2.7B | [`configs/qwen2.5-7b_to_opt-2.7b_distill.yaml`](../configs/qwen2.5-7b_to_opt-2.7b_distill.yaml) | [`.sh`](../scripts/distill/qwen2.5-7b_to_opt-2.7b_distill.sh) | LoRA | 15 | 1e-3 |
 | 4 | Mistral-7B → TinyLlama-1.1B | [`configs/mistral-7b_to_tinyllama_distill.yaml`](../configs/mistral-7b_to_tinyllama_distill.yaml) | [`.sh`](../scripts/distill/mistral-7b_to_tinyllama_distill.sh) | LoRA | 15 | 1e-3 |
 
-Legacy pairs: [`scripts/distill/gpt2_120M_distill.sh`](../scripts/distill/gpt2_120M_distill.sh), [`gpt2_1.5B_distill.sh`](../scripts/distill/gpt2_1.5B_distill.sh), [`gpt2_120M_alm_mta_distill.sh`](../scripts/distill/gpt2_120M_alm_mta_distill.sh).
+Legacy pairs: [`scripts/distill/gpt2_1.5B_distill.sh`](../scripts/distill/gpt2_1.5B_distill.sh), [`gpt2_120M_alm_mta_distill.sh`](../scripts/distill/gpt2_120M_alm_mta_distill.sh).
+Renamed: `gpt2_120M_distill.sh` → [`qwen1.5-1.8b_to_gpt2_distill.sh`](../scripts/distill/qwen1.5-1.8b_to_gpt2_distill.sh) (pair 0).
 
 **Always run scripts from the repo root** (`d:/MLResearch/alm/`) so relative paths (`configs/`, `data/`, `outputs/`) resolve.
 
