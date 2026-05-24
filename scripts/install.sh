@@ -12,9 +12,9 @@ set -e
 PYTHON="${PYTHON:-python3}"
 CUDA_VERSION="${CUDA_VERSION:-cu121}"
 
-echo "[1/5] Python version check"
+echo "[1/5] Python version check (PyTorch path supports 3.10-3.12)"
 $PYTHON --version
-$PYTHON -c "import sys; assert sys.version_info < (3, 11), 'Python <= 3.10 required, got %s' % sys.version"
+$PYTHON -c "import sys; assert (3, 10) <= sys.version_info < (3, 13), 'Python 3.10-3.12 required, got %s' % sys.version"
 
 echo "[2/5] Upgrade pip + base tools"
 $PYTHON -m pip install --upgrade pip setuptools wheel
