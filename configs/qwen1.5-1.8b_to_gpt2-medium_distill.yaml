@@ -1,0 +1,91 @@
+# Pair 1: VoCuc/Qwen1.5_1.8B_SFT_Dolly -> openai-community/gpt2-medium
+# Full fine-tune, 20 epochs, batch 8, LR 5e-4, projector LR 1e-3 (lr_scale=2).
+# Losses: sft + alm_unconstrained + mta with weights [1, 1, 2] (w_span_loss=2.0).
+
+name: "qwen1.5-1.8b_to_gpt2-medium"
+output: "outputs/qwen1.5-1.8b_to_gpt2-medium"
+
+# epochs takes precedence; steps/warmup_steps recomputed from len(dataloader).
+epochs: 20
+steps: 0
+warmup_steps: 0
+
+num_workers: 8
+log_interval: 50
+sync_interval: 100
+eval_interval: 50000
+save_interval: 50000
+
+losses: [sft, alm_unconstrained, mta]
+loss_weights: [1.0, 1.0, 2.0]
+
+target_tokenizer_name: openai-community/gpt2-medium:source=GPT2
+tokens_to_add: []
+
+# Full fine-tune (no LoRA).
+train_model_mode: "full"
+train_embeddings: true
+
+# ── ALM hyperparams ─────────────────────────────────────────────────────────
+binarization_temp: 100.0
+alm_diff_fn: "binary_ce"
+alm_mode: "merge_by_space_prob+append_space"
+tokenizer_pair_data_path: "artifacts/tokenizer_data/qwen_to_gpt2_medium"
+tokenizer_pair_bias_threshold: 0.1
+
+# Single GPU.
+student_device: "cuda:0"
+teacher_device: "cuda:0"
+
+# ── MTA hyperparams ─────────────────────────────────────────────────────────
+mta_mode: true
+teacher_layer_mapping: [9, 12, 15, 18, 21, 24]
+student_layer_mapping: [9, 12, 15, 18, 21, 24]
+# [lo, word_end, span_end, total] -> 1 word-level + 5 span-level projectors.
+split_layer_mapping: [0, 1, 6, 6]
+entropy_weight: false
+wo_span_weight: false
+
+student:
+  pretrained_model_name_or_path: "openai-community/gpt2-medium"
+  tokenizer_name: "openai-community/gpt2-medium:source=GPT2"
+
+teacher:
+  pretrained_model_name_or_path: "VoCuc/Qwen1.5_1.8B_SFT_Dolly"
+  tokenizer_name: "VoCuc/Qwen1.5_1.8B_SFT_Dolly:source=Qwen2"
+
+data:
+  path: data/dolly_train_with_spans.jsonl
+  batch_size: 8
+  num_workers: 8
+  kind: "jsonl"
+  lang_code: en
+
+hypernet:
+  architecture: transformer
+  num_layers: 1
+  residual: true
+  residual_alpha: 1
+  use_attention: false
+
+optimizer:
+  type: adamw
+  weight_decay: 0.01
+  b1: 0.9
+  b2: 0.95
+  eps: 1.e-8
+  grad_acc_steps: null
+  learning_rate: 5.e-4
+  max_grad_norm: 1.0
+  param_groups:
+    # PROJECTOR_LR / LR = 1e-3 / 5e-4 = 2.
+    - pattern: .*(projector_query|projector_s2t|projector_t2s|projector_latents|loss_weights|mta_projector).*
+      lr_scale: 2
+
+eval:
+  tasks: [arc_easy,arc_challenge,piqa,hellaswag,boolq,arithmetic,mmlu]
+  lengths: [128, 256, 512, 1024, 2048]
+  tokens_per_batch: 8192
+  add_bos: true
+  chat_template_mode: surround_instruct
+  confirm_run_unsafe_code: true

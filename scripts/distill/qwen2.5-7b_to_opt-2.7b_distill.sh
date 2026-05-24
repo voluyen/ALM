@@ -1,35 +1,29 @@
+#!/bin/bash
+# Pair 3: Qwen2.5-7B -> OPT-2.7B (LoRA, 15 epochs, batch 8).
+# 7B teacher + 2.7B student on single GPU: tightest fit, ~26GB VRAM.
+set -e
+
 GPUS=(0)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
-NAME=TinyLLaMA_distill
-python3 scripts/cross_tokenizer_distill.py \
-    --config=gpt2_1.5B_cross_tokenizer_distill.yaml \
+NAME=qwen2.5-7b_to_opt-2.7b
+
+python3 pytorch_cross_tokenizer_distill.py \
+    --config=configs/qwen2.5-7b_to_opt-2.7b_distill.yaml \
     --overrides \
-    losses=[sft,alm_unconstrained] \
-    alm_mode=merge_by_space_prob+append_space \
-    tokenizer_pair_bias_threshold=0.1 \
     max_teacher_length=256 \
     max_student_length=256 \
     n_data_parallel=1 \
     n_model_parallel=1 \
-    steps=15000 \
-    warmup_steps=1500 \
-    eval_interval=50000 \
-    save_interval=50000 \
     eval.tasks=[math_500_openmath2,gsm8k_openmath2] \
     eval.lengths=[2048] \
     eval.tokens_per_batch=16384 \
     eval.chat_template_mode=direct_encode_no_force_eos \
-    log_interval=50 \
-    sync_interval=100 \
     use_chat_template=false \
     chat_template_mode=direct_encode \
     hypernet.architecture=identity \
-    train_embeddings=true \
-    train_model_mode=lora \
     eval_at_step_zero=false \
     save_at_step_zero=false \
     skip_lm_eval=true \
-    latents_do_project=false \
-    num_workers=24 \
+    num_workers=8 \
     name=$NAME

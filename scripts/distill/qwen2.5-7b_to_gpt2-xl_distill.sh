@@ -1,17 +1,15 @@
 #!/bin/bash
-# Train GPT2-120M student with combined alm_unbiased + MTA loss
-# against Qwen1.5-1.8B teacher.
-# Requires: data/dolly_train_with_spans.jsonl (run precompute_spans.py first).
-
+# Pair 2: Qwen2.5-7B -> GPT2-XL (LoRA, 15 epochs, batch 8).
+# 7B teacher + 1.5B student on single GPU: needs ~24GB VRAM.
 set -e
 
-GPUS=(0 1)
+GPUS=(0)
 export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
 
-NAME=gpt2_120M_alm_mta_v1
+NAME=qwen2.5-7b_to_gpt2-xl
 
 python3 pytorch_cross_tokenizer_distill.py \
-    --config=gpt2_120M_alm_mta_distill.yaml \
+    --config=configs/qwen2.5-7b_to_gpt2-xl_distill.yaml \
     --overrides \
     max_teacher_length=256 \
     max_student_length=256 \
@@ -27,5 +25,5 @@ python3 pytorch_cross_tokenizer_distill.py \
     eval_at_step_zero=false \
     save_at_step_zero=false \
     skip_lm_eval=true \
-    num_workers=16 \
+    num_workers=8 \
     name=$NAME

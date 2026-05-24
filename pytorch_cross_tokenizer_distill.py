@@ -60,7 +60,7 @@ class LossArgs:
 class CrossTokenizerDistillArgs:
     # list of losses to use, e.g. "[sft,alm_unconstrained]" to use SFT and cross-tokenizer distillation via ALM.
     losses: list[str]
-    # number of steps to train for.
+    # number of steps to train for. If `epochs` is set, this is overridden after dataloader is built.
     steps: int
     # number of steps to warmup the learning rate linearly.
     warmup_steps: int
@@ -201,6 +201,11 @@ class CrossTokenizerDistillArgs:
     entropy_weight: bool = False
     # If True, MSE is unweighted (mean over pairs) instead of teacher-weight weighted.
     wo_span_weight: bool = False
+
+    # Optional: train for an exact number of epochs over the dataset.
+    # If set (>0), `steps` is recomputed as `len(train_dataloader) * epochs` once the dataloader is constructed,
+    # and `warmup_steps` is set to 10% of the new total if it equals 0.
+    epochs: int = 0
 
 
 def cross_entropy(
@@ -693,6 +698,18 @@ def main(args: CrossTokenizerDistillArgs):
         collate_fn=collator,
         shuffle=True
     )
+
+    # If `epochs` is provided, override `steps` with exact value derived from dataloader length.
+    # `warmup_steps` defaults to 10% of total steps if left at 0.
+    if args.epochs and args.epochs > 0:
+        steps_per_epoch = len(train_dataloader)
+        args.steps = steps_per_epoch * args.epochs
+        if not args.warmup_steps:
+            args.warmup_steps = max(1, int(0.1 * args.steps))
+        logger.info(
+            "epochs=%d -> steps=%d (steps_per_epoch=%d), warmup_steps=%d",
+            args.epochs, args.steps, steps_per_epoch, args.warmup_steps,
+        )
 
 
     def train_step(batch):

@@ -255,6 +255,30 @@ class MistralModelKind(BaseModelKind):
             "<|<assistant_name>|>": None,
         }
 
+
+class OPTModelKind(BaseModelKind):
+    # facebook/opt-* family. Uses GPT-2-style BPE with HF specials
+    # (bos_token='</s>', eos_token='</s>', pad_token='<pad>', unk_token='<unk>').
+    # OPT does not have a chat template.
+
+    @property
+    def special_tokens(self) -> List[str]:
+        return ["</s>", "<pad>", "<unk>"]
+
+    @property
+    def replacements(self) -> Dict[str, Optional[List[str]]]:
+        return {
+            "<|<bos>|>": ["</s>"],
+            "<|<pad>|>": ["<pad>"],
+            "<|<start_header>|>": None,
+            "<|<end_header>|>": None,
+            "<|<eos>|>": ["</s>"],
+            "<|<eot>|>": ["</s>"],
+            "<|<system_name>|>": None,
+            "<|<user_name>|>": None,
+            "<|<assistant_name>|>": None,
+        }
+
 # Model kind registry
 def get_model_kind_cls(model_kind: str) -> BaseModelKind:
     return {
@@ -267,4 +291,5 @@ def get_model_kind_cls(model_kind: str) -> BaseModelKind:
         "GPT2": GPT2ModelKind(),
         "TinyLlama": TinyLlamaModelKind(),
         "Mistral": MistralModelKind(),
+        "OPT": OPTModelKind(),
     }[model_kind]

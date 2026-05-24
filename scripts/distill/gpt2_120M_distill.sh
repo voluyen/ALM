@@ -1,9 +1,6 @@
-GPUS=(1)
-export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${GPUS[*]}")
-
 NAME=gpt2_120m_distill_mta
 python3 pytorch_cross_tokenizer_distill.py \
-    --config=gpt2_120M_cross_tokenizer_distill.yaml \
+    --config=configs/gpt2_120M_cross_tokenizer_distill.yaml \
     --overrides \
     losses=[sft,alm_unconstrained,mta] \
     loss_weights=[1.0,1.0,2.0] \
@@ -22,8 +19,9 @@ python3 pytorch_cross_tokenizer_distill.py \
     max_student_length=256 \
     n_data_parallel=1 \
     n_model_parallel=1 \
-    steps=7200 \
-    warmup_steps=500 \
+    epochs=20 \
+    steps=0 \
+    warmup_steps=0 \
     eval_interval=50000 \
     save_interval=50000 \
     eval.tasks=[math_500_openmath2,gsm8k_openmath2] \

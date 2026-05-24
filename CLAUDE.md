@@ -17,15 +17,21 @@ alm/
 ├── jax_cross_tokenizer_distill.py      # JAX training entrypoint (production)
 ├── pytorch_cross_tokenizer_distill.py  # PyTorch training entrypoint (experimental)
 ├── pytorch_tokenizer_aligner.py        # TokenizerAlignerCollator for PyTorch dataloader
+├── pytorch_span_utils.py               # Span tensor helpers for MTA loss
 ├── evaluator.py                        # ROUGE/generation evaluation utilities
 ├── run_eval.py                         # Evaluation entrypoint (argparse-based)
-├── *.yaml                              # Experiment configs (Hydra/OmegaConf)
-├── *.sh                                # Launch scripts for training & eval
-├── data/                               # Training data (dolly_train.jsonl, valid.jsonl)
-├── vocab_alignment/                    # Pre-computed teacher↔student token mappings
-│   └── {pair}/                         # e.g. qwen_to_gpt2/, math_to_llama/
-│       ├── tea2stu_id_mapping.json
-│       └── stu2tea_id_mapping.json
+├── precompute_spans.py                 # spaCy-based span extractor (run once before MTA training)
+├── configs/                            # YAML training configs (Hydra/OmegaConf)
+│   └── *.yaml
+├── scripts/                            # Shell launchers (always run from repo root)
+│   ├── distill/*.sh                    # Training launchers per pair
+│   ├── eval/*.sh                       # Eval launchers
+│   └── run.sh                          # End-to-end pipeline
+├── docs/                               # Project documentation (pytorch-distill-guide.md etc.)
+├── plans/                              # Brainstorm reports & implementation plans
+├── data/                               # Training data (dolly_train.jsonl, valid.jsonl, *_with_spans.jsonl)
+├── vocab_alignment/                    # ⚠ LEGACY/UNUSED — code does not load these mappings.
+│   └── {pair}/                         # Real tokenizer-pair data lives in artifacts/tokenizer_data/ (bias matrices)
 └── tokenkit-main/                      # The tokenkit library (installed via pip -e .)
     ├── tokenkit/
     │   ├── align.py                    # Core token alignment logic
@@ -70,17 +76,21 @@ pip install -e tokenkit-main/  # still needs tokenkit for align/byteify
 
 ### Training
 
-**PyTorch distillation** (single/dual GPU):
+**PyTorch distillation** (single GPU — always run from repo root):
 ```bash
-# GPT2-120M student ← Qwen teacher
-bash gpt2_120M_distill.sh
+# Legacy GPT2 pairs
+bash scripts/distill/gpt2_120M_distill.sh
+bash scripts/distill/gpt2_1.5B_distill.sh
 
-# GPT2-1.5B student ← Qwen-7B teacher
-bash gpt2_1.5B_distill.sh
+# New cross-tokenizer pairs (see docs/pytorch-distill-guide.md)
+bash scripts/distill/qwen1.5-1.8b_to_gpt2-medium_distill.sh
+bash scripts/distill/qwen2.5-7b_to_gpt2-xl_distill.sh
+bash scripts/distill/qwen2.5-7b_to_opt-2.7b_distill.sh
+bash scripts/distill/mistral-7b_to_tinyllama_distill.sh
 
 # Direct invocation with config overrides:
 python3 pytorch_cross_tokenizer_distill.py \
-    --config=gpt2_120M_cross_tokenizer_distill.yaml \
+    --config=configs/gpt2_120M_cross_tokenizer_distill.yaml \
     --overrides \
     losses=[sft,alm_unconstrained] \
     steps=7200 \
@@ -98,7 +108,7 @@ python3 tokenkit-main/scripts/cross_tokenizer_distill.py ...
 
 ```bash
 # Evaluate a checkpoint with ROUGE on Dolly
-bash eval_gpt2_0.1B.sh
+bash scripts/eval/eval_gpt2_0.1B.sh
 
 # Direct invocation:
 python run_eval.py \
