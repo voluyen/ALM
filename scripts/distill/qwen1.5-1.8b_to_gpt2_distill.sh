@@ -8,9 +8,9 @@ python3 pytorch_cross_tokenizer_distill.py \
     losses=[sft,alm_unconstrained,mta] \
     loss_weights=[1.0,1.0,2.0] \
     mta_mode=true \
-    teacher_layer_mapping=[6,12,18,24] \
-    student_layer_mapping=[3,6,9,12] \
-    split_layer_mapping=[0,1,4,4] \
+    teacher_layer_mapping=[12,18,24] \
+    student_layer_mapping=[6,9,12] \
+    split_layer_mapping=[0,1,3,3] \
     entropy_weight=false \
     wo_span_weight=false \
     data.path=data/dolly_train_with_spans.jsonl \

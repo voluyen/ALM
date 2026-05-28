@@ -1,26 +1,37 @@
-steps: 5_000
-warmup_steps: 1_000
-name: "qwen1.5-1.8b_to_gpt2"
-output: "outputs/qwen1.5-1.8b_to_gpt2"
-num_workers: 16
+# Pair 0 (ALM-only): VoCuc/Qwen1.5_1.8B_SFT -> openai-community/gpt2 (124M).
+# Full fine-tune, 20 epochs, batch 16 (match MTA-effective config).
+# Losses: sft + alm_unconstrained (no MTA).
+
+name: "qwen1.5-1.8b_to_gpt2_alm"
+output: "outputs/qwen1.5-1.8b_to_gpt2_alm"
+
+epochs: 20
+steps: 0
+warmup_steps: 0
+
+num_workers: 8
 log_interval: 50
 sync_interval: 100
-eval_interval: 5000
-save_interval: 5000
-losses: [alm_unbiased]
+eval_interval: 50000
+save_interval: 50000
+
+losses: [sft, alm_unconstrained]
+loss_weights: [1.0, 1.0]
+
 target_tokenizer_name: openai-community/gpt2:source=GPT2
 tokens_to_add: []
 
 train_model_mode: "full"
-model_lora_rank: 64
-model_lora_alpha: 64
 train_embeddings: true
 
 binarization_temp: 100.0
 alm_diff_fn: "binary_ce"
-alm_mode: "space_merge+append_space"
+alm_mode: "merge_by_space_prob+append_space"
 tokenizer_pair_data_path: "artifacts/tokenizer_data/qwen_to_gpt2"
 tokenizer_pair_bias_threshold: 0.1
+
+student_device: "cuda:0"
+teacher_device: "cuda:0"
 
 student:
   pretrained_model_name_or_path: "openai-community/gpt2"
@@ -32,7 +43,7 @@ teacher:
 
 data:
   path: data/dolly_train.jsonl
-  batch_size: 8
+  batch_size: 16
   num_workers: 16
   kind: "jsonl"
   lang_code: en

@@ -43,10 +43,18 @@ fi
 # ── 2. Run all distillation pairs ───────────────────────────────────────────
 PAIRS=(
     "scripts/distill/qwen1.5-1.8b_to_gpt2_distill.sh"
-    "scripts/distill/qwen1.5-1.8b_to_gpt2-medium_distill.sh"
-    "scripts/distill/qwen2.5-7b_to_gpt2-xl_distill.sh"
-    "scripts/distill/qwen2.5-7b_to_opt-2.7b_distill.sh"
-    "scripts/distill/mistral-7b_to_tinyllama_distill.sh"
+    "scripts/distill/qwen1.5-1.8b_to_gpt2_alm_distill.sh"
+    "scripts/distill/qwen1.5-1.8b_to_gpt2_mta_all_word_distill.sh"
+    "scripts/distill/qwen1.5-1.8b_to_gpt2_mta_all_phrase_distill.sh"
+    "scripts/distill/qwen1.5-1.8b_to_gpt2_mta_no_weight_distill.sh"
+    # "scripts/distill/qwen1.5-1.8b_to_gpt2-medium_distill.sh"
+    "scripts/distill/qwen1.5-1.8b_to_gpt2-medium_alm_distill.sh"
+    # "scripts/distill/qwen2.5-7b_to_gpt2-xl_distill.sh"
+    "scripts/distill/qwen2.5-7b_to_gpt2-xl_alm_distill.sh"
+    # "scripts/distill/qwen2.5-7b_to_opt-2.7b_distill.sh"
+    "scripts/distill/qwen2.5-7b_to_opt-2.7b_alm_distill.sh"
+    # "scripts/distill/mistral-7b_to_tinyllama_distill.sh"
+    "scripts/distill/mistral-7b_to_tinyllama_alm_distill.sh"
 )
 
 mkdir -p outputs/run_logs
